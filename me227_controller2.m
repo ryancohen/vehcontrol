@@ -37,21 +37,23 @@ K = interp1(path.s_m, path.k_1pm, s);
 
 % Use the Lateral Control Law to Caclulate Delta
 if Mode == 1
-    kla = 3500; %N/m
+    kla = 3200; %N/m
     xla = 15; %m
     delta = (-kla/Caf)*(e+xla*dpsi);
     dpsi_ss = K*((m*a*ux*ux/(L*Car))-b);
     delta_ff = (kla*xla*dpsi_ss/Caf) + K*(L+(K_us*ux*ux));
-    delta = delta + delta_ff;
-    
-    Kdriver = m*0.1*g;
-    Fx = Kdriver*(ux_desired-ux);
-    % Calculate the feedback steering command with lateral error and heading error
+    delta = delta + delta_ff;    
+   % Calculate the feedback steering command with lateral error and heading error
 else
-    
+    % r = dpsi_dot, dpsi
+    Kp = -1;
+    Ki = -0.218;
+    Kd = 0.13;
+    delta = Kp*dpsi+Kd*r+Ki*e+0;
     % Calculate the steering command with PID
 end
 
 % Use the Longitudinal Control Law to Calcuate Fx
-
+Kdriver = m*0.1*g;
+Fx = Kdriver*(uxdes-ux);
 end

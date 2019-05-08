@@ -41,7 +41,7 @@ function animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
     sim.tire_r = plot(0,0, 'Color', tire_color, 'LineWidth', 3);
     sim.ref    = plot(0,0, 'Color', 'k',        'LineWidth', 2);
 
-    plot(ax_space, path.posE, path.posN, 'k--');
+    plot(ax_space, path.posE_m, path.posN_m, 'k--');
 
     curI = 1;
     maxI = length(s_m);
