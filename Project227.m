@@ -79,8 +79,13 @@ setup_niki;
 
 x=1;
 
+t_final = 8;
+dt = 0.001;
+t_s = 0:dt:8;
+
+
 % allocate space for simulation data
-N = length(path.s_m);
+N = length(t_s);
 r_radps     = zeros(N,1);
 uy_mps      = zeros(N,1);
 ux_mps      = zeros(N,1);
@@ -103,9 +108,7 @@ theta_r         = 0;
 rho             = 1.225; % kg/m^(3)
 mode = 2; %1 = feedback/forward, 2 = PID
 
-t_final = 8;
-t_s = linspace(0, t_final, N);
-dt = t_s(2) - t_s(1);
+
 
 for idx = 1:N
 
@@ -210,7 +213,7 @@ subplot(4,1,4);
 %     xlabel('Time [s]');
     
     
-
+max(ay_mps2)
 
 animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
 %% Functions

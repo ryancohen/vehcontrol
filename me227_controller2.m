@@ -46,10 +46,10 @@ if Mode == 1
    % Calculate the feedback steering command with lateral error and heading error
 else
     % r = dpsi_dot, dpsi
-    Kp = -0.99;
-    Ki = -0.1818;
-    Kd = 0.19;
-    delta = Kp*dpsi+Kd*r+Ki*e;
+    Kp = -1;
+    Ki = -0.218;
+    Kd = 0.13;
+    delta = Kp*dpsi+Kd*r+Ki*e+0;
     % Calculate the steering command with PID
 end
 
