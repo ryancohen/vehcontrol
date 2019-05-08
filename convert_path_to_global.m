@@ -9,9 +9,9 @@ n = length(s);
 E = zeros(n,1);
 N = zeros(n,1);
 
-centE = interp1(path.s,path.posE, mod(s,path.s(end)));
-centN = interp1(path.s,path.posN, mod(s,path.s(end)));
-theta = interp1(path.s,path.psi, mod(s,path.s(end)));
+centE = interp1(path.s_m,path.posE_m, mod(s,path.s_m(end)));
+centN = interp1(path.s_m,path.posN_m, mod(s,path.s_m(end)));
+theta = interp1(path.s_m,path.psi_rad, mod(s,path.s_m(end)));
 psi   = theta + dpsi;
 
 for i=1:n

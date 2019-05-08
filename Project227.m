@@ -66,12 +66,12 @@ max(real(final_a(3:end)))
 %% Part 2
 % assuming grade is constant
 % gain choice?
-clc;
 close all;
 % Path is already defined! with s_m, k_1pm, psi_rad, posE_m, posN_m
 
 % append speed profile to path
 path.UxDes = final_vel;
+path.axDes = final_a;
 
 g = 9.81;                   	% gravity acceleration, meters/sec^2
 
@@ -88,6 +88,10 @@ dpsi_rad    = zeros(N,1);
 s_m         = zeros(N,1);
 e_m         = zeros(N,1);
 delta_rad   = zeros(N,1);
+Fx_N        = zeros(N,1);
+ay_mps2     = zeros(N,1);
+ax_mps2     = zeros(N,1);
+a_tot       = zeros(N,1);
 
 
 % set initial conditions
@@ -97,7 +101,7 @@ frr             = 0.015;
 CdA             = 0.594; % m^(2)
 theta_r         = 0;
 rho             = 1.225; % kg/m^(3)
-mode = 2;
+mode = 2; %1 = feedback/forward, 2 = PID
 
 t_final = 8;
 t_s = linspace(0, t_final, N);
@@ -120,7 +124,7 @@ for idx = 1:N
     %project, but for this homework use Mode == 1 to select the feedback
     %controller and Mode == 2 to select the feedforward plus feedback
     %controller
-    [ delta, Fx ] = me227_controller(s, e, dpsi, ux, uy, r, mode, path);
+    [ delta, Fx ] = me227_controller2(s, e, dpsi, ux, uy, r, mode, path);
     
     %Calculate the Dynamics with the Nonlinear Bike Model
     [r_dot, uy_dot, ux_dot, s_dot, e_dot, dpsi_dot] = ...
@@ -129,6 +133,7 @@ for idx = 1:N
         
     % only update next state if we are not at end of simulation
     delta_rad(idx) = delta;
+    Fx_N(idx) = Fx;
     if idx < N
         % Euler integration(Feel free to vectorize this)
         r_radps(idx+1) = integrate_euler(r, r_dot, dt);
@@ -137,39 +142,77 @@ for idx = 1:N
         % Questionable but we do what we can
         s_m(idx+1) = integrate_euler(s, s_dot, dt);
         e_m(idx+1) = integrate_euler(e, e_dot, dt);
-        dpsi_rad(idx+1) = integrate_euler(dpsi, dpsi_dot, dt);    
+        dpsi_rad(idx+1) = integrate_euler(dpsi, dpsi_dot, dt);
+        ax_mps2(idx+1) = ux_dot-r*uy_mps(idx+1);
+        ay_mps2(idx+1) = uy_dot+r*ux_mps(idx+1);
+        a_tot(idx+1) = sqrt((ax_mps2(idx+1)^2)+(ay_mps2(idx+1)^2));
     end
 end
 
-figure(7);
-title('Problem 3.1')
-subplot(2,3,1); hold on; grid on;
-    plot(t_s, r_radps)
-    xlabel('Time [s]')
-    ylabel('r [radps]')
-subplot(2,3,2); hold on; grid on;
-    plot(t_s, uy_mps)
-    xlabel('Time [s]')
-    ylabel('u_y [mps]')
-subplot(2,3,3); hold on; grid on;
-    plot(t_s, ux_mps)
-    xlabel('Time [s]')
-    ylabel('u_x [mps]')
-subplot(2,3,4); hold on; grid on;
-    plot(t_s, dpsi_rad)
-    xlabel('Time [s]')
-    ylabel('\Delta\psi [rad]')
-subplot(2,3,5); hold on; grid on;
-    plot(t_s, e_m)
-    xlabel('Time [s]')
-    ylabel('e [m]')
-subplot(2,3,6); hold on; grid on;
-    plot(t_s, s_m)
-    xlabel('Time [s]')
-    ylabel('s [m]')
+% figure(1);
+% title('General Variable States');
+% subplot(2,3,1); hold on; grid on;
+%     plot(t_s, r_radps)
+%     xlabel('Time [s]')
+%     ylabel('r [radps]')
+% subplot(2,3,2); hold on; grid on;
+%     plot(t_s, uy_mps)
+%     xlabel('Time [s]')
+%     ylabel('u_y [mps]')
+% subplot(2,3,3); hold on; grid on;
+%     plot(t_s, ux_mps)
+%     xlabel('Time [s]')
+%     ylabel('u_x [mps]')
+% subplot(2,3,4); hold on; grid on;
+%     plot(t_s, dpsi_rad)
+%     xlabel('Time [s]')
+%     ylabel('\Delta\psi [rad]')
+% subplot(2,3,5); hold on; grid on;
+%     plot(t_s, e_m)
+%     xlabel('Time [s]')
+%     ylabel('e [m]')
+% subplot(2,3,6); hold on; grid on;
+%     plot(t_s, s_m)
+%     xlabel('Time [s]')
+%     ylabel('s [m]')
+% 
+%     
+figure(2);
+title('Controller Performance');
+subplot(4,1,1);
+    plot(t_s,e_m);
+    ylabel('Lateral Error [m]');
+subplot(4,1,2);
+    plot(t_s,ay_mps2);
+    ylabel('Lateral Acc.');
+    ylim(1.2*[-4,4]);
+subplot(4,1,3);
+    plot(t_s,ax_mps2);
+    ylabel('Long. Acc.');
+    ylim(1.2*[-4,3]);
+subplot(4,1,4);
+    plot(t_s,a_tot);
+    ylabel('Total Acc.');
+    ylim(1.2*[-4,4]);
+    xlabel('Time [s]');
+%     
+% max(a_tot)
+% max(abs(ax_mps2))
+% 
+% figure(3);
+% title('Controller Outputs');
+% subplot(2,1,1)
+%     plot(t_s, delta_rad);
+%     ylabel('Delta [rads]');
+% subplot(2,1,2)
+%     plot(t_s, Fx_N);
+%     ylabel('Fx [N]');
+%     xlabel('Time [s]');
+    
+    
 
 
-% animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
+animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
 %% Functions
 function Ux = integrate_backwards(s, K, a_max, a_xmin)
 %UNTITLED3 Summary of this function goes here
@@ -224,7 +267,7 @@ function Fy = fiala_model(alpha, tire)
 %   Calculate tire forces with the fiala model
     a_sl = atan(3*tire.mu*tire.Fz/tire.Ca);
     if abs(alpha)< a_sl
-    Fy = (0-(tire.Ca*tan(alpha)))+((tire.Ca^2*(2-((tire.mu_s)/(tire.mu)))*abs(tan(alpha))*tan(alpha))/(3*tire.mu*tire.Fz))-(((tire.Ca^3 * (tan(alpha))^3)/(9*tire.mu^2*tire.Fz^2))*(1-((2*tire.mu_s)/(3*tire.mu))));
+        Fy = (0-(tire.Ca*tan(alpha)))+((tire.Ca^2*(2-((tire.mu_s)/(tire.mu)))*abs(tan(alpha))*tan(alpha))/(3*tire.mu*tire.Fz))-(((tire.Ca^3 * (tan(alpha))^3)/(9*tire.mu^2*tire.Fz^2))*(1-((2*tire.mu_s)/(3*tire.mu))));
     else
        Fy=-tire.mu_s*tire.Fz*sign(alpha);
     end
@@ -255,7 +298,7 @@ end
 uy_dot=(fyf*cos(delta)+fyr+fxf*sin(delta))/veh.m-r*ux;
     g = 9.81;
     Frr=frr*veh.m*g;
-    Fd=0.5*rho*CdA*ux^(2);
+    Fd=0.5*rho*CdA*(ux^2);
 ux_dot=(fxr+fxf-Frr-Fd-veh.m*g*sin(theta_r))/veh.m;
 s_dot=(1/(1-e*K))*(ux*cos(dpsi)-uy*sin(dpsi));
 r_dot=(veh.a*fyf*cos(delta)+veh.a*fxf*sin(delta)-veh.b*fyr)/veh.Iz;
