@@ -8,11 +8,8 @@ path.UxDes = final_vel;
 path.axDes = final_ax;
 save('project_data.mat');
 
-%% Part 2
-% assuming grade is constant
-% gain choice?
+%% Part 2: Speed Controller with Grade
 close all;
-% Path is already defined! with s_m, k_1pm, psi_rad, posE_m, posN_m
 
 % append speed profile to path
 path.UxDes = final_vel;
@@ -110,13 +107,11 @@ subplot(3,1,3);
 animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
 
 %% Part 3
-% assuming grade is constant
-% gain choice?
 clear all; 
 close all;
 setup_niki;
 load('project_data.mat');
-% Path is already defined! with s_m, k_1pm, psi_rad, posE_m, posN_m
+
 % append speed profile to path
 
 g = 9.81;                   	% gravity acceleration, meters/sec^2
@@ -269,11 +264,11 @@ for idx = 1:N
     dpsi = dpsi_rad(idx);
     s = s_m(idx);
     e = e_m(idx);
-    
-    e_noise = e+ 0.005*normrnd(0,1);
-    ux_noise = abs(ux+ 0.005*normrnd(0,1))+0.0001;
 
-    [ delta, Fx ] = me227_controller(s, e_noise, dpsi, ux_noise, uy, r, mode, path); 
+    ux_noisy = abs(ux_mps(idx) + 0.25*normrnd(0,1))+0.001; %
+    e_noisy = e_m(idx)+ 0.05*normrnd(0,1);
+    [ delta, Fx ] = me227_controller2(s, e_noisy, dpsi, ux_noisy, uy, r, mode, path); 
+
     %Calculate the Dynamics with the Nonlinear Bike Model
     [r_dot, uy_dot, ux_dot, s_dot, e_dot, dpsi_dot] = ...
             nonlinear_bicycle_model(r, uy, ux, dpsi, e, delta, Fx, K, veh,...
