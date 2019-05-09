@@ -1,67 +1,12 @@
-clc
-clear
-close all
-a_max = 4; a_xmax = 3; a_xmin = -4; a_ymax = 4;
-a_max = 0.99*a_max;
-a_xmin = 0.985*a_xmin;
-load('project_data.mat')
-
-max_front = islocalmax(path.k_1pm, 'FlatSelection', 'first'); % Start of regions of maximum curvature
-max_rear = islocalmax(path.k_1pm, 'FlatSelection', 'last'); % Endpoints of regions of maximum curvature
-plot(path.s_m, path.k_1pm)
-hold on
-plot(path.s_m(max_front), path.k_1pm(max_front), 'r*', path.s_m(max_rear), path.k_1pm(max_rear), 'b*')
-title('Curvature of Path, with Constant Radii Marked'); xlabel('s [m]'); ylabel('K [1/m]')
-
-vel_profiles = zeros(sum(max_front) + 2, length(max_front)); % Separate velocity profile for each curve, plus for start and endpoints
-in_max = 0;
-start = 0;
-
-for i = 1:length(max_front)
-    if in_max == 0
-        if max_front(i) == 1
-            start = i;
-            vel_profiles(sum(max_front(1:start)), 1:start) = integrate_backwards(path.s_m(1:start), path.k_1pm(1:start), a_max, a_xmin);
-            in_max = 1;
-        end
-    else
-        if max_rear(i) == 1
-            vel_profiles(sum(max_front(1:start)), start:i) = vel_profiles(sum(max_front(1:start)), start);
-            vel_profiles(sum(max_front(1:start)), i:end) = integrate_forwards(path.s_m(i:end), path.k_1pm(i:end), a_max, a_xmax);
-            in_max = 0;
-        end
-    end
-end
-
-vel_profiles(end - 1, :) = const_accel(path.s_m, 0.85*a_xmax);
-vel_profiles(end , :) = const_accel(path.s_m, a_xmin);
-
-figure
-plot(path.s_m, vel_profiles)
-title('All Proposed Velocity Profiles'); xlabel('s [m]'); ylabel('Ux [m/s]');
-
-final_vel = min(vel_profiles, [], 1);
-figure
-plot(path.s_m, final_vel)
-title('Final (Minimum) Desired Velocity Profile'); xlabel('s [m]'); ylabel('Ux [m/s]')
-
-final_ax = zeros(1, length(final_vel));
-final_ay = zeros(1, length(final_vel));
-for i = 2:(length(final_vel) - 1)
-    final_ax(i) = (final_vel(i+1) - final_vel(i))/(path.s_m(i+1) - path.s_m(i)) * final_vel(i+1);
-    final_ay(i) = path.k_1pm(i) * final_vel(i)^2;
-end
-final_a = sqrt(final_ax.^2 + final_ay.^2);
-
-figure
-plot(path.s_m, final_ax, path.s_m, final_ay, path.s_m, final_a)
-legend('a_x', 'a_y', 'a')
-title('Desired Acceleration Profiles'); xlabel('s [m]'); ylabel('acceleration [m/s^2]');
-
-max(real(final_ax(3:end)))
-min(real(final_ax))
-max(real(final_ay))
-max(real(final_a(3:end)))
+%% Part 1
+clear all;
+verbose = 1;
+% setup_niki;
+[final_ax, final_ay, final_a, final_vel] = generate_speed_profiles(verbose);
+load('project_data.mat');
+path.UxDes = final_vel;
+path.axDes = final_ax;
+save('project_data.mat');
 
 %% Part 2
 % assuming grade is constant
@@ -123,7 +68,7 @@ for idx = 1:N
     e = e_m(idx);
     ux_des_mps(idx) = interp1(path.s_m, path.UxDes, s);
     
-    [ delta, Fx ] = me227_controller2(s, e, dpsi, ux, uy, r, mode, path); 
+    [ delta, Fx ] = me227_controller(s, e, dpsi, ux, uy, r, mode, path); 
     %Calculate the Dynamics with the Nonlinear Bike Model
     [r_dot, uy_dot, ux_dot, s_dot, e_dot, dpsi_dot] = ...
             nonlinear_bicycle_model(r, uy, ux, dpsi, e, delta, Fx, K, veh,...
@@ -149,6 +94,7 @@ end
 figure(1);
 subplot(3,1,1);
     plot(t_s, theta_r);
+    title('PART 2 CONTROLLER PERFORMANCE ON STRAIGHT ROAD');
     ylabel('Grade [rads]');
 subplot(3,1,2);
     plot(t_s, ux_mps);
@@ -158,34 +104,28 @@ subplot(3,1,2);
     legend('Ux', 'Ux_{des}')
 subplot(3,1,3);
     plot(t_s, ux_des_mps - ux_mps);
-    ylabel('$\Delta$ Ux}');
+    ylabel('\Delta Ux}');
+    xlabel('Time [s]')
     
-    
-
-    
-
 animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
 
 %% Part 3
 % assuming grade is constant
 % gain choice?
+clear all; 
 close all;
+setup_niki;
+load('project_data.mat');
 % Path is already defined! with s_m, k_1pm, psi_rad, posE_m, posN_m
-
 % append speed profile to path
-path.UxDes = final_vel;
-path.axDes = final_ax;
 
 g = 9.81;                   	% gravity acceleration, meters/sec^2
-
 setup_niki;
-
 x=1;
 
 t_final = 100;
 dt = 0.01;
 t_s = 0:dt:t_final;
-
 
 % allocate space for simulation data
 N = length(t_s);
@@ -223,7 +163,7 @@ for idx = 1:N
     s = s_m(idx);
     e = e_m(idx);
 
-    [ delta, Fx ] = me227_controller2(s, e, dpsi, ux, uy, r, mode, path); 
+    [ delta, Fx ] = me227_controller(s, e, dpsi, ux, uy, r, mode, path); 
     %Calculate the Dynamics with the Nonlinear Bike Model
     [r_dot, uy_dot, ux_dot, s_dot, e_dot, dpsi_dot] = ...
             nonlinear_bicycle_model(r, uy, ux, dpsi, e, delta, Fx, K, veh,...
@@ -246,39 +186,15 @@ for idx = 1:N
     end
 end
 
-% figure(1);
-% title('General Variable States');
-% subplot(2,3,1); hold on; grid on;
-%     plot(t_s, r_radps)
-%     xlabel('Time [s]')
-%     ylabel('r [radps]')
-% subplot(2,3,2); hold on; grid on;
-%     plot(t_s, uy_mps)
-%     xlabel('Time [s]')
-%     ylabel('u_y [mps]')
-% subplot(2,3,3); hold on; grid on;
-%     plot(t_s, ux_mps)
-%     xlabel('Time [s]')
-%     ylabel('u_x [mps]')
-% subplot(2,3,4); hold on; grid on;
-%     plot(t_s, dpsi_rad)
-%     xlabel('Time [s]')
-%     ylabel('\Delta\psi [rad]')
-% subplot(2,3,5); hold on; grid on;
-%     plot(t_s, e_m)
-%     xlabel('Time [s]')
-%     ylabel('e [m]')
-% subplot(2,3,6); hold on; grid on;
-%     plot(t_s, s_m)
-%     xlabel('Time [s]')
-%     ylabel('s [m]')
-% 
-%     
 figure(2);
-title('Controller Performance');
 subplot(4,1,1);
     plot(t_s,e_m);
     ylabel('Lateral Error [m]');
+    if mode == 1
+        title('Lookahead Controller Performance w/ No Noise');
+    else
+        title('PID Controller Performance w/ No Noise');
+    end
 subplot(4,1,2);
     plot(t_s,ay_mps2);
     ylabel('Lateral Acc.');
@@ -292,22 +208,19 @@ subplot(4,1,4);
     ylabel('Total Acc.');
     ylim(1.2*[-4,4]);
     xlabel('Time [s]');
-%     
-% max(a_tot)
-% max(abs(ax_mps2))
-% 
-% figure(3);
-% title('Controller Outputs');
-% subplot(2,1,1)
-%     plot(t_s, delta_rad);
-%     ylabel('Delta [rads]');
-% subplot(2,1,2)
-%     plot(t_s, Fx_N);
-%     ylabel('Fx [N]');
-%     xlabel('Time [s]');
+ 
+figure(3);
+subplot(2,1,1)
+    plot(t_s, delta_rad);
+    ylabel('Delta [rads]');
+    title('Controller Outputs');
+subplot(2,1,2)
+    plot(t_s, Fx_N);
+    ylabel('Fx [N]');
+    xlabel('Time [s]');
     
 
-animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
+% animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
 %% Part 4: Measurement Noise
 close all;
 
@@ -316,15 +229,10 @@ path.UxDes = final_vel;
 path.axDes = final_ax;
 
 g = 9.81;                   	% gravity acceleration, meters/sec^2
-
 setup_niki;
-
-x=1;
-
 t_final = 100;
 dt = 0.01;
 t_s = 0:dt:t_final;
-
 
 % allocate space for simulation data
 N = length(t_s);
@@ -347,7 +255,7 @@ e_m(1)          = 0.0000001;
 frr             = 0.015;
 CdA             = 0.594; % m^(2)
 theta_r         = zeros(N,1);
-    theta_r(round(0.1*N):round(0.15*N)) = 0.08;
+%     theta_r(round(0.1*N):round(0.15*N)) = 0.08;
 rho             = 1.225; % kg/m^(3)
 mode = 1; %1 = feedback/forward, 2 = PID
 
@@ -357,12 +265,15 @@ for idx = 1:N
     % current states
     r = r_radps(idx);
     uy = uy_mps(idx) ;
-    ux = abs(ux_mps(idx)+ 0.005*normrnd(0,1))+0.0001;
+    ux = ux_mps(idx);
     dpsi = dpsi_rad(idx);
     s = s_m(idx);
-    e = e_m(idx)+ 0.005*normrnd(0,1);
+    e = e_m(idx);
+    
+    e_noise = e+ 0.005*normrnd(0,1);
+    ux_noise = abs(ux+ 0.005*normrnd(0,1))+0.0001;
 
-    [ delta, Fx ] = me227_controller2(s, e, dpsi, ux, uy, r, mode, path); 
+    [ delta, Fx ] = me227_controller(s, e_noise, dpsi, ux_noise, uy, r, mode, path); 
     %Calculate the Dynamics with the Nonlinear Bike Model
     [r_dot, uy_dot, ux_dot, s_dot, e_dot, dpsi_dot] = ...
             nonlinear_bicycle_model(r, uy, ux, dpsi, e, delta, Fx, K, veh,...
@@ -386,10 +297,14 @@ for idx = 1:N
 end
 
 figure(2);
-title('Controller Performance');
 subplot(4,1,1);
     plot(t_s,e_m);
     ylabel('Lateral Error [m]');
+    if mode == 1
+        title('Lookahead Controller Performance with Noise')
+    else
+        title('PID Controller Performance with Noise')
+    end
 subplot(4,1,2);
     plot(t_s,ay_mps2);
     ylabel('Lateral Acc.');
@@ -403,6 +318,16 @@ subplot(4,1,4);
     ylabel('Total Acc.');
     ylim(1.2*[-4,4]);
     xlabel('Time [s]'); 
+    
+figure;
+subplot(2,1,1)
+    plot(t_s, delta_rad);
+    ylabel('Delta [rads]');
+    title('Controller Outputs');
+subplot(2,1,2)
+    plot(t_s, Fx_N);
+    ylabel('Fx [N]');
+    xlabel('Time [s]');
 
 animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
 %% Functions
