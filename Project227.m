@@ -107,17 +107,11 @@ subplot(3,1,3);
 animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
 
 %% Part 3
-clear all; 
+clear; 
 close all;
 setup_niki;
-<<<<<<< HEAD
 load('project_data_logged.mat');
-% Path is already defined! with s_m, k_1pm, psi_rad, posE_m, posN_m
-=======
-load('project_data.mat');
 
->>>>>>> 9c9fed8e00eee24cf878a5ef8e314c3fb144b5bf
-% append speed profile to path
 
 g = 9.81;                   	% gravity acceleration, meters/sec^2
 setup_niki;
@@ -221,12 +215,8 @@ subplot(2,1,2)
     
 
 % animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
-<<<<<<< HEAD
-%% Part 4: Measurement Noise
-clear all; 
-=======
+
 %% Part 4: Measurement Noise and Grade
->>>>>>> 9c9fed8e00eee24cf878a5ef8e314c3fb144b5bf
 close all;
 setup_niki;
 load('project_data_logged.mat');
@@ -272,12 +262,6 @@ for idx = 1:N
     dpsi = dpsi_rad(idx);
     s = s_m(idx);
     e = e_m(idx);
-<<<<<<< HEAD
-    
-    e_noise = e_m(idx)+ 0.05*normrnd(0,1);
-    ux_noise = abs(ux_mps(idx) + 0.25*normrnd(0,1))+0.001;
-=======
->>>>>>> 9c9fed8e00eee24cf878a5ef8e314c3fb144b5bf
 
     ux_noisy = abs(ux_mps(idx) + 0.25*normrnd(0,1))+0.001; %
     e_noisy = e_m(idx)+ 0.05*normrnd(0,1);
