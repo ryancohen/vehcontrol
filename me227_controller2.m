@@ -47,9 +47,11 @@ if Mode == 1
 else
     % r = dpsi_dot, dpsi
     Kp = -1;
-    Ki = -0.218;
-    Kd = 0.13;
-    delta = Kp*dpsi+Kd*r+Ki*e+0;
+    Ki = -0.8; % -0.518 = gucci
+    Kd = -0.17; %%% THIS IS FOR YOU CHRIS
+    s_dot = (1/(1-e*K))*(ux*cos(dpsi)-uy*sin(dpsi));
+    dpsi_dot = r-K*s_dot;
+    delta = Kp*dpsi+Kd*dpsi_dot+Ki*e+0;
     % Calculate the steering command with PID
 end
 
