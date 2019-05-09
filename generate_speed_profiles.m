@@ -57,6 +57,8 @@ for i = 2:(length(final_vel) - 1)
     final_ay(i) = path.k_1pm(i) * final_vel(i)^2;
 end
 final_a = sqrt(final_ax.^2 + final_ay.^2);
+stopping_index = length(path.s_m(path.s_m<(path.s_m(end) - 3))) - 1; % where the vehicle stops
+final_ax(stopping_index:end) = -4;
 
 if verbose == 1
     figure

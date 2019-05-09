@@ -50,8 +50,11 @@ else
     Ki = -0.3; % -0.518 = gucci
     Kd = -0.06; %-0.17; %%% THIS IS FOR YOU CHRIS
     s_dot = (1/(1-e*K))*(ux*cos(dpsi)-uy*sin(dpsi));
+    e_dot=uy*cos(dpsi)+ux*sin(dpsi);
+    dpsi_ss = K*((m*a*ux*ux/(L*Car))-b);
+    dpsi_ss_dot = K*(m*a*2*ux/(L*Car)); 
     dpsi_dot = r-K*s_dot;
-    delta = Kp*dpsi+Kd*dpsi_dot+Ki*e+0;
+    delta = Kp*(dpsi-dpsi_ss)+Kd*(dpsi_dot-dpsi_ss_dot+e_dot)+Ki*e;
     % Calculate the steering command with PID
 end
 

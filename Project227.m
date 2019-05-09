@@ -77,7 +77,7 @@ for idx = 1:N
         % Euler integration(Feel free to vectorize this)
         r_radps(idx+1) = integrate_euler(r, r_dot, dt);
         uy_mps(idx+1) = integrate_euler(uy, uy_dot, dt);
-        ux_mps(idx+1) = integrate_euler(ux, ux_dot, dt);
+        ux_mps(idx+1) = max([0, integrate_euler(ux, ux_dot, dt)]);
         % Questionable but we do what we can
         s_m(idx+1) = integrate_euler(s, s_dot, dt);
         e_m(idx+1) = integrate_euler(e, e_dot, dt);
@@ -169,7 +169,7 @@ for idx = 1:N
         % Euler integration(Feel free to vectorize this)
         r_radps(idx+1) = integrate_euler(r, r_dot, dt);
         uy_mps(idx+1) = integrate_euler(uy, uy_dot, dt);
-        ux_mps(idx+1) = integrate_euler(ux, ux_dot, dt);
+        ux_mps(idx+1) = max([0, integrate_euler(ux, ux_dot, dt)]);
         % Questionable but we do what we can
         s_m(idx+1) = integrate_euler(s, s_dot, dt);
         e_m(idx+1) = integrate_euler(e, e_dot, dt);
@@ -250,7 +250,7 @@ CdA             = 0.594; % m^(2)
 theta_r         = zeros(N,1);
 %     theta_r(round(0.1*N):round(0.15*N)) = 0.08;
 rho             = 1.225; % kg/m^(3)
-mode = 2; %1 = feedback/forward, 2 = PID
+mode = 1; %1 = feedback/forward, 2 = PID
 
 for idx = 1:N
    % look up K
@@ -265,7 +265,7 @@ for idx = 1:N
 
     ux_noisy = abs(ux_mps(idx) + 0.25*normrnd(0,1))+0.001; %
     e_noisy = e_m(idx)+ 0.05*normrnd(0,1);
-    [ delta, Fx ] = me227_controller2(s, e_noisy, dpsi, ux_noisy, uy, r, mode, path); 
+    [ delta, Fx ] = me227_controller(s, e_noisy, dpsi, ux_noisy, uy, r, mode, path); 
 
     %Calculate the Dynamics with the Nonlinear Bike Model
     [r_dot, uy_dot, ux_dot, s_dot, e_dot, dpsi_dot] = ...
@@ -278,7 +278,7 @@ for idx = 1:N
         % Euler integration(Feel free to vectorize this)
         r_radps(idx+1) = integrate_euler(r, r_dot, dt);
         uy_mps(idx+1) = integrate_euler(uy, uy_dot, dt);
-        ux_mps(idx+1) = integrate_euler(ux, ux_dot, dt);
+        ux_mps(idx+1) = max([0, integrate_euler(ux, ux_dot, dt)]);
         % Questionable but we do what we can
         s_m(idx+1) = integrate_euler(s, s_dot, dt);
         e_m(idx+1) = integrate_euler(e, e_dot, dt);
@@ -363,7 +363,7 @@ function [ r_dot, uy_dot, ux_dot, s_dot, e_dot, dpsi_dot] = ...
         Frr=frr*veh.m*g;
         Fd=0.5*rho*CdA*(ux^2);
     ux_dot=(fxr+fxf-Frr-Fd-veh.m*g*sin(theta_r))/veh.m;
-    s_dot=(1/(1-e*K))*(ux*cos(dpsi)-uy*sin(dpsi));
+    s_dot= max([0, (1/(1-e*K))*(ux*cos(dpsi)-uy*sin(dpsi))]);
     r_dot=(veh.a*fyf*cos(delta)+veh.a*fxf*sin(delta)-veh.b*fyr)/veh.Iz;
     e_dot=uy*cos(dpsi)+ux*sin(dpsi);
     dpsi_dot=r-K*s_dot;
