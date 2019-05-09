@@ -63,11 +63,8 @@ min(real(final_ax))
 max(real(final_ay))
 max(real(final_a(3:end)))
 
-%% Part 2
-% assuming grade is constant
-% gain choice?
+%% Part 2: Speed Controller with Grade
 close all;
-% Path is already defined! with s_m, k_1pm, psi_rad, posE_m, posN_m
 
 % append speed profile to path
 path.UxDes = final_vel;
@@ -166,11 +163,8 @@ subplot(3,1,3);
 
 animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
 
-%% Part 3
-% assuming grade is constant
-% gain choice?
+%% Part 3: Constant Grade
 close all;
-% Path is already defined! with s_m, k_1pm, psi_rad, posE_m, posN_m
 
 % append speed profile to path
 path.UxDes = final_vel;
@@ -246,34 +240,6 @@ for idx = 1:N
     end
 end
 
-% figure(1);
-% title('General Variable States');
-% subplot(2,3,1); hold on; grid on;
-%     plot(t_s, r_radps)
-%     xlabel('Time [s]')
-%     ylabel('r [radps]')
-% subplot(2,3,2); hold on; grid on;
-%     plot(t_s, uy_mps)
-%     xlabel('Time [s]')
-%     ylabel('u_y [mps]')
-% subplot(2,3,3); hold on; grid on;
-%     plot(t_s, ux_mps)
-%     xlabel('Time [s]')
-%     ylabel('u_x [mps]')
-% subplot(2,3,4); hold on; grid on;
-%     plot(t_s, dpsi_rad)
-%     xlabel('Time [s]')
-%     ylabel('\Delta\psi [rad]')
-% subplot(2,3,5); hold on; grid on;
-%     plot(t_s, e_m)
-%     xlabel('Time [s]')
-%     ylabel('e [m]')
-% subplot(2,3,6); hold on; grid on;
-%     plot(t_s, s_m)
-%     xlabel('Time [s]')
-%     ylabel('s [m]')
-% 
-%     
 figure(2);
 title('Controller Performance');
 subplot(4,1,1);

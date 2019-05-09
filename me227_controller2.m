@@ -63,5 +63,4 @@ Frr = frr*m*g;
 Fd = 0.5*rho*CdA*(ux^2);
 Kdriver = 0.5*m*0.1*g;
 Fx = m*axdes+Frr+Fd+Kdriver*(uxdes-ux);
-% Fx = Fd+Frr+Kdriver*(uxdes-ux);
 end
