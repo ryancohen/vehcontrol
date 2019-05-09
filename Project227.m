@@ -71,7 +71,8 @@ close all;
 
 % append speed profile to path
 path.UxDes = final_vel;
-path.axDes = final_a;
+path.axDes = final_ax;
+path.k_1pm = zeros(length(final_ax),1);
 
 g = 9.81;                   	% gravity acceleration, meters/sec^2
 
@@ -79,9 +80,111 @@ setup_niki;
 
 x=1;
 
-t_final = 8;
-dt = 0.001;
-t_s = 0:dt:8;
+t_final = 100;
+dt = 0.01;
+t_s = 0:dt:t_final;
+
+
+% allocate space for simulation data
+N = length(t_s);
+r_radps     = zeros(N,1);
+uy_mps      = zeros(N,1);
+ux_mps      = zeros(N,1);
+ux_des_mps  = zeros(N,1);
+dpsi_rad    = zeros(N,1);
+s_m         = zeros(N,1);
+e_m         = zeros(N,1);
+delta_rad   = zeros(N,1);
+Fx_N        = zeros(N,1);
+ay_mps2     = zeros(N,1);
+ax_mps2     = zeros(N,1);
+a_tot       = zeros(N,1);
+
+
+% set initial conditions
+ux_mps(1)       = 0.001;
+e_m(1)          = 1;
+frr             = 0.015;
+CdA             = 0.594; % m^(2)
+theta_r         = zeros(N,1);
+    theta_r(round(0.1*N):round(0.15*N)) = 0.08;
+rho             = 1.225; % kg/m^(3)
+mode = 2; %1 = feedback/forward, 2 = PID
+
+for idx = 1:N
+   % look up K
+    K = interp1(path.s_m, path.k_1pm, s_m(idx));  
+    % current states
+    r = r_radps(idx);
+    uy = uy_mps(idx);
+    ux = ux_mps(idx);
+    dpsi = dpsi_rad(idx);
+    s = s_m(idx);
+    e = e_m(idx);
+    ux_des_mps(idx) = interp1(path.s_m, path.UxDes, s);
+    
+    [ delta, Fx ] = me227_controller2(s, e, dpsi, ux, uy, r, mode, path); 
+    %Calculate the Dynamics with the Nonlinear Bike Model
+    [r_dot, uy_dot, ux_dot, s_dot, e_dot, dpsi_dot] = ...
+            nonlinear_bicycle_model(r, uy, ux, dpsi, e, delta, Fx, K, veh,...
+            tire_f, tire_r,frr,CdA,rho,theta_r(idx));
+    % only update next state if we are not at end of simulation
+    delta_rad(idx) = delta;
+    Fx_N(idx) = Fx;
+    if idx < N
+        % Euler integration(Feel free to vectorize this)
+        r_radps(idx+1) = integrate_euler(r, r_dot, dt);
+        uy_mps(idx+1) = integrate_euler(uy, uy_dot, dt);
+        ux_mps(idx+1) = integrate_euler(ux, ux_dot, dt);
+        % Questionable but we do what we can
+        s_m(idx+1) = integrate_euler(s, s_dot, dt);
+        e_m(idx+1) = integrate_euler(e, e_dot, dt);
+        dpsi_rad(idx+1) = integrate_euler(dpsi, dpsi_dot, dt);
+        ax_mps2(idx+1) = ux_dot-r*uy_mps(idx+1);
+        ay_mps2(idx+1) = uy_dot+r*ux_mps(idx+1);
+        a_tot(idx+1) = sqrt((ax_mps2(idx+1)^2)+(ay_mps2(idx+1)^2));
+    end
+end
+
+figure(1);
+subplot(3,1,1);
+    plot(t_s, theta_r);
+    ylabel('Grade [rads]');
+subplot(3,1,2);
+    plot(t_s, ux_mps);
+    hold on;
+    plot(t_s, ux_des_mps);
+    ylabel('Long. Vel. [m/s]');
+    legend('Ux', 'Ux_{des}')
+subplot(3,1,3);
+    plot(t_s, ux_des_mps - ux_mps);
+    ylabel('$\Delta$ Ux}');
+    
+    
+
+    
+
+animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
+
+%% Part 3
+% assuming grade is constant
+% gain choice?
+close all;
+% Path is already defined! with s_m, k_1pm, psi_rad, posE_m, posN_m
+
+% append speed profile to path
+path.UxDes = final_vel;
+path.axDes = final_ax;
+
+g = 9.81;                   	% gravity acceleration, meters/sec^2
+
+setup_niki;
+
+x=1;
+
+t_final = 100;
+dt = 0.01;
+t_s = 0:dt:t_final;
 
 
 % allocate space for simulation data
@@ -100,21 +203,18 @@ a_tot       = zeros(N,1);
 
 
 % set initial conditions
-ux_mps(1)       = 13;
-e_m(1)          = 1;
+ux_mps(1)       = 0.001;
+e_m(1)          = 0.0000001;
 frr             = 0.015;
 CdA             = 0.594; % m^(2)
-theta_r         = 0;
+theta_r         = zeros(N,1);
+%     theta_r(round(0.1*N):round(0.15*N)) = 0.08;
 rho             = 1.225; % kg/m^(3)
 mode = 2; %1 = feedback/forward, 2 = PID
 
-
-
 for idx = 1:N
-
-    % look up K
-    K = interp1(path.s_m, path.k_1pm, s_m(idx));
-    
+   % look up K
+    K = interp1(path.s_m, path.k_1pm, s_m(idx));  
     % current states
     r = r_radps(idx);
     uy = uy_mps(idx);
@@ -123,17 +223,11 @@ for idx = 1:N
     s = s_m(idx);
     e = e_m(idx);
 
-    %Note Mode will be used to select which controller is active for the
-    %project, but for this homework use Mode == 1 to select the feedback
-    %controller and Mode == 2 to select the feedforward plus feedback
-    %controller
-    [ delta, Fx ] = me227_controller2(s, e, dpsi, ux, uy, r, mode, path);
-    
+    [ delta, Fx ] = me227_controller2(s, e, dpsi, ux, uy, r, mode, path); 
     %Calculate the Dynamics with the Nonlinear Bike Model
     [r_dot, uy_dot, ux_dot, s_dot, e_dot, dpsi_dot] = ...
             nonlinear_bicycle_model(r, uy, ux, dpsi, e, delta, Fx, K, veh,...
-            tire_f, tire_r,frr,CdA,rho,theta_r);
-        
+            tire_f, tire_r,frr,CdA,rho,theta_r(idx));
     % only update next state if we are not at end of simulation
     delta_rad(idx) = delta;
     Fx_N(idx) = Fx;
@@ -212,8 +306,103 @@ subplot(4,1,4);
 %     ylabel('Fx [N]');
 %     xlabel('Time [s]');
     
-    
-max(ay_mps2)
+
+animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
+%% Part 4: Measurement Noise
+close all;
+
+% append speed profile to path
+path.UxDes = final_vel;
+path.axDes = final_ax;
+
+g = 9.81;                   	% gravity acceleration, meters/sec^2
+
+setup_niki;
+
+x=1;
+
+t_final = 100;
+dt = 0.01;
+t_s = 0:dt:t_final;
+
+
+% allocate space for simulation data
+N = length(t_s);
+r_radps     = zeros(N,1);
+uy_mps      = zeros(N,1);
+ux_mps      = zeros(N,1);
+dpsi_rad    = zeros(N,1);
+s_m         = zeros(N,1);
+e_m         = zeros(N,1);
+delta_rad   = zeros(N,1);
+Fx_N        = zeros(N,1);
+ay_mps2     = zeros(N,1);
+ax_mps2     = zeros(N,1);
+a_tot       = zeros(N,1);
+
+
+% set initial conditions
+ux_mps(1)       = 0.001;
+e_m(1)          = 0.0000001;
+frr             = 0.015;
+CdA             = 0.594; % m^(2)
+theta_r         = zeros(N,1);
+    theta_r(round(0.1*N):round(0.15*N)) = 0.08;
+rho             = 1.225; % kg/m^(3)
+mode = 1; %1 = feedback/forward, 2 = PID
+
+for idx = 1:N
+   % look up K
+    K = interp1(path.s_m, path.k_1pm, s_m(idx));  
+    % current states
+    r = r_radps(idx);
+    uy = uy_mps(idx) ;
+    ux = abs(ux_mps(idx)+ 0.005*normrnd(0,1))+0.0001;
+    dpsi = dpsi_rad(idx);
+    s = s_m(idx);
+    e = e_m(idx)+ 0.005*normrnd(0,1);
+
+    [ delta, Fx ] = me227_controller2(s, e, dpsi, ux, uy, r, mode, path); 
+    %Calculate the Dynamics with the Nonlinear Bike Model
+    [r_dot, uy_dot, ux_dot, s_dot, e_dot, dpsi_dot] = ...
+            nonlinear_bicycle_model(r, uy, ux, dpsi, e, delta, Fx, K, veh,...
+            tire_f, tire_r,frr,CdA,rho,theta_r(idx));
+    % only update next state if we are not at end of simulation
+    delta_rad(idx) = delta;
+    Fx_N(idx) = Fx;
+    if idx < N
+        % Euler integration(Feel free to vectorize this)
+        r_radps(idx+1) = integrate_euler(r, r_dot, dt);
+        uy_mps(idx+1) = integrate_euler(uy, uy_dot, dt);
+        ux_mps(idx+1) = integrate_euler(ux, ux_dot, dt);
+        % Questionable but we do what we can
+        s_m(idx+1) = integrate_euler(s, s_dot, dt);
+        e_m(idx+1) = integrate_euler(e, e_dot, dt);
+        dpsi_rad(idx+1) = integrate_euler(dpsi, dpsi_dot, dt);
+        ax_mps2(idx+1) = ux_dot-r*uy_mps(idx+1);
+        ay_mps2(idx+1) = uy_dot+r*ux_mps(idx+1);
+        a_tot(idx+1) = sqrt((ax_mps2(idx+1)^2)+(ay_mps2(idx+1)^2));
+    end
+end
+
+figure(2);
+title('Controller Performance');
+subplot(4,1,1);
+    plot(t_s,e_m);
+    ylabel('Lateral Error [m]');
+subplot(4,1,2);
+    plot(t_s,ay_mps2);
+    ylabel('Lateral Acc.');
+    ylim(1.2*[-4,4]);
+subplot(4,1,3);
+    plot(t_s,ax_mps2);
+    ylabel('Long. Acc.');
+    ylim(1.2*[-4,3]);
+subplot(4,1,4);
+    plot(t_s,a_tot);
+    ylabel('Total Acc.');
+    ylim(1.2*[-4,4]);
+    xlabel('Time [s]'); 
 
 animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
 %% Functions
