@@ -323,12 +323,14 @@ for idx = 1:N
     % current states
     r = r_radps(idx);
     uy = uy_mps(idx) ;
-    ux = abs(ux_mps(idx)+ 0.005*normrnd(0,1))+0.0001;
+    ux = ux_mps(idx);
     dpsi = dpsi_rad(idx);
     s = s_m(idx);
-    e = e_m(idx)+ 0.005*normrnd(0,1);
+    e = e_m(idx);
 
-    [ delta, Fx ] = me227_controller2(s, e, dpsi, ux, uy, r, mode, path); 
+    ux_noisy = abs(ux_mps(idx) + 0.25*normrnd(0,1))+0.001; %
+    e_noisy = e_m(idx)+ 0.05*normrnd(0,1);
+    [ delta, Fx ] = me227_controller2(s, e_noisy, dpsi, ux_noisy, uy, r, mode, path); 
     %Calculate the Dynamics with the Nonlinear Bike Model
     [r_dot, uy_dot, ux_dot, s_dot, e_dot, dpsi_dot] = ...
             nonlinear_bicycle_model(r, uy, ux, dpsi, e, delta, Fx, K, veh,...
