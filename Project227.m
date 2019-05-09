@@ -256,7 +256,7 @@ CdA             = 0.594; % m^(2)
 theta_r         = zeros(N,1);
 %     theta_r(round(0.1*N):round(0.15*N)) = 0.08;
 rho             = 1.225; % kg/m^(3)
-mode = 1; %1 = feedback/forward, 2 = PID
+mode = 2; %1 = feedback/forward, 2 = PID
 
 for idx = 1:N
    % look up K
@@ -269,8 +269,8 @@ for idx = 1:N
     s = s_m(idx);
     e = e_m(idx);
     
-    e_noise = e+ 0.05*normrnd(0,1);
-    ux_noise = abs(ux+ 0.005*normrnd(0,1))+0.0001;
+    e_noise = e_m(idx)+ 0.05*normrnd(0,1);
+    ux_noise = abs(ux_mps(idx) + 0.25*normrnd(0,1))+0.001;
 
     [ delta, Fx ] = me227_controller(s, e_noise, dpsi, ux_noise, uy, r, mode, path); 
     %Calculate the Dynamics with the Nonlinear Bike Model

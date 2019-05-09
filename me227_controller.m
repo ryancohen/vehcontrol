@@ -46,9 +46,9 @@ if Mode == 1
    % Calculate the feedback steering command with lateral error and heading error
 else
     % r = dpsi_dot, dpsi
-    Kp = -1;
-    Ki = -0.8; % -0.518 = gucci
-    Kd = -0.17; %%% THIS IS FOR YOU CHRIS
+    Kp = -1.78;
+    Ki = -0.3; % -0.518 = gucci
+    Kd = -0.06; %-0.17; %%% THIS IS FOR YOU CHRIS
     s_dot = (1/(1-e*K))*(ux*cos(dpsi)-uy*sin(dpsi));
     dpsi_dot = r-K*s_dot;
     delta = Kp*dpsi+Kd*dpsi_dot+Ki*e+0;
