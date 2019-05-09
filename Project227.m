@@ -324,53 +324,6 @@ subplot(2,1,2)
 
 % animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
 %% Functions
-function Ux = integrate_backwards(s, K, a_max, a_xmin)
-%UNTITLED3 Summary of this function goes here
-%   Detailed explanation goes here
-    Ux = zeros(1, length(s));
-    Ux(end) = sqrt(a_max/K(end));
-    for i = (length(Ux) - 1):-1:1
-        dUxds = sqrt(a_max^2 - (K(i+1)*Ux(i+1)^2)^2)/Ux(i+1);
-%         if dUxds*Ux(i+1) > abs(a_xmin) % Enforce longitudinal acceleration constraint
-%             dUxds = a_xmin/Ux(i+1);
-%         end
-        Ux(i) = Ux(i + 1) + dUxds*(s(i+1) - s(i));
-    end
-end
-
-function Ux = integrate_forwards(s, K, a_max, a_xmax)
-%UNTITLED3 Summary of this function goes here
-%   Detailed explanation goes here
-    Ux = zeros(1, length(s));
-    Ux(1) = sqrt(a_max/K(1));
-    for i = 2:length(Ux)
-        dUxds = sqrt(a_max^2 - (K(i-1)*Ux(i-1)^2)^2)/Ux(i-1);
-        if dUxds*Ux(i-1) > a_xmax % Enforce longitudinal acceleration constraint
-            dUxds = a_xmax/Ux(i-1);
-        end
-        Ux(i) = Ux(i-1) + dUxds*(s(i) - s(i-1));
-    end
-end
-
-function Ux = const_accel(s, ax)
-%UNTITLED3 Summary of this function goes here
-%   Detailed explanation goes here
-    Ux = zeros(1, length(s));
-    if ax > 0
-        Ux(1) = 0.5;
-        for i = 2:length(Ux)
-            dUxds = ax/Ux(i - 1);
-            Ux(i) = Ux(i - 1) + dUxds*(s(i) - s(i-1));
-        end
-    else
-        stopping_index = length(s(s<(s(end) - 3))) - 1; % Stop 3 meters before end of path (reach Ux = 0.5 one index before this)
-        Ux(stopping_index) = 0.5;
-        for i = stopping_index - 1:-1:1 
-            dUxds = ax/Ux(i + 1);
-            Ux(i) = Ux(i + 1) - dUxds*(s(i+1) - s(i));
-        end
-    end
-end
 
 %Calculate Forces with the Fiala Nonlinear Tire Model
 function Fy = fiala_model(alpha, tire)
@@ -387,46 +340,45 @@ end
 function [ r_dot, uy_dot, ux_dot, s_dot, e_dot, dpsi_dot] = ...
     nonlinear_bicycle_model( r, uy, ux, dpsi, e, delta, Fx, K, veh, tire_f,...
     tire_r,frr,CdA,rho,theta_r)
-%KINEMATIC_MODEL
-%   Calculate state derivatives for the kinematic vehicle model
-% slip angles
-[alphaF, alphaR] = slip_angles( r, uy, ux, delta, veh);
+    %KINEMATIC_MODEL
+    %   Calculate state derivatives for the kinematic vehicle model
+    % slip angles
+    [alphaF, alphaR] = slip_angles( r, uy, ux, delta, veh);
 
-% lateral tire forces
-fyf = fiala_model(alphaF, tire_f);
-fyr = fiala_model(alphaR, tire_r);
+    % lateral tire forces
+    fyf = fiala_model(alphaF, tire_f);
+    fyr = fiala_model(alphaR, tire_r);
 
-%Split longitudinal force based on drive and brakedistribution
-if Fx > 0
-    fxf = Fx;
-    fxr = 0;
-else
-    fxf = 0.5*Fx;
-    fxr = 0.5*Fx;
-end
-% dynamics
-uy_dot=(fyf*cos(delta)+fyr+fxf*sin(delta))/veh.m-r*ux;
-    g = 9.81;
-    Frr=frr*veh.m*g;
-    Fd=0.5*rho*CdA*(ux^2);
-ux_dot=(fxr+fxf-Frr-Fd-veh.m*g*sin(theta_r))/veh.m;
-s_dot=(1/(1-e*K))*(ux*cos(dpsi)-uy*sin(dpsi));
-r_dot=(veh.a*fyf*cos(delta)+veh.a*fxf*sin(delta)-veh.b*fyr)/veh.Iz;
-e_dot=uy*cos(dpsi)+ux*sin(dpsi);
-dpsi_dot=r-K*s_dot;
+    %Split longitudinal force based on drive and brakedistribution
+    if Fx > 0
+        fxf = Fx;
+        fxr = 0;
+    else
+        fxf = 0.5*Fx;
+        fxr = 0.5*Fx;
+    end
+    % dynamics
+    uy_dot=(fyf*cos(delta)+fyr+fxf*sin(delta))/veh.m-r*ux;
+        g = 9.81;
+        Frr=frr*veh.m*g;
+        Fd=0.5*rho*CdA*(ux^2);
+    ux_dot=(fxr+fxf-Frr-Fd-veh.m*g*sin(theta_r))/veh.m;
+    s_dot=(1/(1-e*K))*(ux*cos(dpsi)-uy*sin(dpsi));
+    r_dot=(veh.a*fyf*cos(delta)+veh.a*fxf*sin(delta)-veh.b*fyr)/veh.Iz;
+    e_dot=uy*cos(dpsi)+ux*sin(dpsi);
+    dpsi_dot=r-K*s_dot;
 end
 
 %Calculate the Slip Angles Here:
 function [alphaF, alphaR] = slip_angles( r, uy, ux, delta, veh)
-%slip_angles
-%   calculate the tire slip angles 
-alphaF=((uy+veh.a*r)/ux)-delta;
-alphaR=(uy-veh.b*r)/ux;
+    % Calculate the tire slip angles 
+    alphaF=((uy+veh.a*r)/ux)-delta;
+    alphaR=(uy-veh.b*r)/ux;
 end
 
 %Use standard Euler Integration
 function x1 = integrate_euler( x0, x0_dot, dt )
-%INTEGRATE_EULER
-%   simple zero-hold integration scheme to compute discrete next state
-x1=x0+x0_dot*dt;
+    %INTEGRATE_EULER
+    %   simple zero-hold integration scheme to compute discrete next state
+    x1=x0+x0_dot*dt;
 end
