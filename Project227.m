@@ -216,7 +216,7 @@ subplot(2,1,2)
     
 
 % animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
-%% Part 4: Measurement Noise
+%% Part 4: Measurement Noise and Grade
 close all;
 
 % append speed profile to path
@@ -252,7 +252,7 @@ CdA             = 0.594; % m^(2)
 theta_r         = zeros(N,1);
 %     theta_r(round(0.1*N):round(0.15*N)) = 0.08;
 rho             = 1.225; % kg/m^(3)
-mode = 1; %1 = feedback/forward, 2 = PID
+mode = 2; %1 = feedback/forward, 2 = PID
 
 for idx = 1:N
    % look up K
