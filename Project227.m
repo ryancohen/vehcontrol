@@ -71,7 +71,7 @@ close all;
 
 % append speed profile to path
 path.UxDes = final_vel;
-path.axDes = final_a;
+path.axDes = final_ax;
 
 g = 9.81;                   	% gravity acceleration, meters/sec^2
 
@@ -79,9 +79,9 @@ setup_niki;
 
 x=1;
 
-t_final = 8;
-dt = 0.001;
-t_s = 0:dt:8;
+t_final = 100;
+dt = 0.01;
+t_s = 0:dt:t_final;
 
 
 % allocate space for simulation data
@@ -100,7 +100,7 @@ a_tot       = zeros(N,1);
 
 
 % set initial conditions
-ux_mps(1)       = 13;
+ux_mps(1)       = 0.001;
 e_m(1)          = 1;
 frr             = 0.015;
 CdA             = 0.594; % m^(2)

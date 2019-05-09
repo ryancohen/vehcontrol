@@ -37,8 +37,8 @@ K = interp1(path.s_m, path.k_1pm, s);
 
 % Use the Lateral Control Law to Caclulate Delta
 if Mode == 1
-    kla = 3200; %N/m
-    xla = 15; %m
+    kla = 7100; %N/m
+    xla = 20; %m
     delta = (-kla/Caf)*(e+xla*dpsi);
     dpsi_ss = K*((m*a*ux*ux/(L*Car))-b);
     delta_ff = (kla*xla*dpsi_ss/Caf) + K*(L+(K_us*ux*ux));
@@ -54,6 +54,12 @@ else
 end
 
 % Use the Longitudinal Control Law to Calcuate Fx
-Kdriver = m*0.1*g;
-Fx = Kdriver*(uxdes-ux);
+frr             = 0.015;
+CdA             = 0.594; % m^(2)
+rho             = 1.225; % kg/m^(3)
+Frr = frr*m*g;
+Fd = 0.5*rho*CdA*(ux^2);
+Kdriver = 0.5*m*0.1*g;
+Fx = m*axdes+Frr+Fd+Kdriver*(uxdes-ux);
+% Fx = Fd+Frr+Kdriver*(uxdes-ux);
 end
