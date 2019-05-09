@@ -6,7 +6,7 @@ verbose = 1;
 load('project_data.mat');
 path.UxDes = final_vel;
 path.axDes = final_ax;
-save('project_data.mat');
+save('project_data_logged.mat');
 
 %% Part 2
 % assuming grade is constant
@@ -115,7 +115,7 @@ animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
 clear all; 
 close all;
 setup_niki;
-load('project_data.mat');
+load('project_data_logged.mat');
 % Path is already defined! with s_m, k_1pm, psi_rad, posE_m, posN_m
 % append speed profile to path
 
@@ -222,11 +222,10 @@ subplot(2,1,2)
 
 % animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
 %% Part 4: Measurement Noise
+clear all; 
 close all;
-
-% append speed profile to path
-path.UxDes = final_vel;
-path.axDes = final_ax;
+setup_niki;
+load('project_data_logged.mat');
 
 g = 9.81;                   	% gravity acceleration, meters/sec^2
 setup_niki;
@@ -270,7 +269,7 @@ for idx = 1:N
     s = s_m(idx);
     e = e_m(idx);
     
-    e_noise = e+ 0.005*normrnd(0,1);
+    e_noise = e+ 0.05*normrnd(0,1);
     ux_noise = abs(ux+ 0.005*normrnd(0,1))+0.0001;
 
     [ delta, Fx ] = me227_controller(s, e_noise, dpsi, ux_noise, uy, r, mode, path); 
@@ -329,7 +328,7 @@ subplot(2,1,2)
     ylabel('Fx [N]');
     xlabel('Time [s]');
 
-animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
+% animate(path, veh, dpsi_rad, s_m, e_m, delta_rad)
 %% Functions
 function Ux = integrate_backwards(s, K, a_max, a_xmin)
 %UNTITLED3 Summary of this function goes here
